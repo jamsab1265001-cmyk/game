@@ -3,6 +3,15 @@ const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const crypto = require("crypto");
+
+async function generateInviteCode() {
+    let code;
+    do {
+        code = crypto.randomBytes(6).toString("hex").toUpperCase();
+    } while (await User.exists({ inviteCode: code }));
+    return code;
+}
 
 // Pakistan mobile number: 03001234567 or +923001234567
 function normalizeMobile(value) {
@@ -68,12 +77,23 @@ router.post("/register", async (req, res) => {
             });
         }
 
+        const referredBy = inviteCode.trim();
+
+        if (referredBy && !(await User.exists({ inviteCode: referredBy }))) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid invitation code"
+            });
+        }
+
         const hashedPassword = await bcrypt.hash(password, 12);
+        const ownInviteCode = await generateInviteCode();
 
         const user = await User.create({
             mobile: normalizedMobile,
             password: hashedPassword,
-            inviteCode: inviteCode.trim()
+            inviteCode: ownInviteCode,
+            referredBy
         });
 
         res.status(201).json({
@@ -82,7 +102,8 @@ router.post("/register", async (req, res) => {
             token: createToken(user),
             user: {
                 id: user._id,
-                mobile: user.mobile
+                mobile: user.mobile,
+                inviteCode: user.inviteCode
             }
         });
     } catch (error) {
@@ -132,7 +153,8 @@ router.post("/login", async (req, res) => {
             token: createToken(user),
             user: {
                 id: user._id,
-                mobile: user.mobile
+                mobile: user.mobile,
+                inviteCode: user.inviteCode
             }
         });
     } catch {

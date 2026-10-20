@@ -16,6 +16,7 @@ const emptyForm = {
     gameUrl: "",
     type: "game",
     image: { url: "", publicId: "" },
+    displayStyle: "single-item",
     isActive: true
 };
 export default function GamesManagement() {
@@ -154,6 +155,7 @@ export default function GamesManagement() {
                         gameUrl: form.gameUrl,
                         image: form.image,
                         type: "game",
+                        displayStyle: form.displayStyle,
                         isActive: form.isActive
                     })
                 }
@@ -177,6 +179,7 @@ export default function GamesManagement() {
             gameUrl: game.gameUrl || "",
             type: "game",
             image: game.image || emptyForm.image,
+            displayStyle: game.displayStyle || "single-item",
             isActive: game.isActive
         });
 
@@ -302,6 +305,26 @@ export default function GamesManagement() {
                         )}
                     </div>
 
+
+                    <label className="block space-y-2">
+                        <span className="text-sm text-slate-300">
+                            Game Display Style
+                        </span>
+
+                        <select
+                            value={form.displayStyle}
+                            onChange={(e) =>
+                                setForm({
+                                    ...form,
+                                    displayStyle: e.target.value
+                                })
+                            }
+                            className="w-full rounded-lg border border-slate-600 bg-slate-800 p-3 text-white"
+                        >
+                            <option value="single-item">Single Grid Item (Default)</option>
+                            <option value="full-row">Full Row Banner</option>
+                        </select>
+                    </label>
 
 
                     <div className="grid gap-4 sm:grid-cols-2">

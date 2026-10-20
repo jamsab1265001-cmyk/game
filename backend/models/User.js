@@ -51,6 +51,11 @@ const userSchema = new mongoose.Schema(
             trim: true,
             default: ""
         },
+        referredBy: {
+            type: String,
+            trim: true,
+            default: ""
+        },
 
         isActive: {
             type: Boolean,

@@ -114,7 +114,7 @@ function PromoStrip() {
         </div>
       </div>
 
-      <div className="ticker announcement-ticker">
+      <div className="ticker announcement-ticker modern-announcement">
         <MessageCircle
           size={16}
           fill="currentColor"
@@ -133,7 +133,7 @@ function PromoStrip() {
           )}
         </div>
 
-        <span className="ticker-arrows">◆ ◆</span>
+        <span className="ticker-arrows" aria-hidden="true">❯❯</span>
       </div>
     </div>
   );
@@ -298,7 +298,7 @@ function BottomNav({ onPage }) {
   return <div className="bottom-nav">
     <button onClick={() => onPage('home')}><HomeIcon /><b>HOME</b></button>
     <button onClick={() => onPage('promo')}><Percent /><b>PROMO</b></button>
-    <button className="bonus" onClick={() => onPage('bonus')}><div><Sparkles size={25} /><span>Get 1500</span></div></button>
+    <button className="bonus" onClick={() => window.location.assign('/free-spin')}><div><Sparkles size={25} /><span>Get 1500</span></div></button>
     <button onClick={() => onPage('vip')}><Trophy /><b>EARN</b></button>
     <button onClick={() => onPage('vip')}><UserRound /><b>MINE</b></button>
   </div>;
@@ -309,8 +309,14 @@ function AuthModal({ mode, onClose, onMode }) {
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
-  const [showInvite, setShowInvite] = useState(false);
+  const [inviteCode, setInviteCode] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return sessionStorage.getItem("pendingInviteCode") || "";
+  });
+  const [showInvite, setShowInvite] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !!sessionStorage.getItem("pendingInviteCode");
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [agree, setAgree] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -460,6 +466,22 @@ function HomePage({ onAuth, onPage }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const cached = sessionStorage.getItem("jamHomeCache");
+
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        setCategories(data.categories);
+        setLayouts(data.layouts);
+        setGames(data.games);
+        setCategory(data.categories[0]?._id || null);
+        setLoading(false);
+        return;
+      } catch {
+        sessionStorage.removeItem("jamHomeCache");
+      }
+    }
+
     const controller = new AbortController();
 
     async function loadData() {
@@ -511,9 +533,18 @@ function HomePage({ onAuth, onPage }) {
           })
         );
 
+        const loadedLayouts = Object.fromEntries(layoutResults);
+        const loadedGames = gameData.games || [];
+
+        sessionStorage.setItem("jamHomeCache", JSON.stringify({
+          categories: parents,
+          layouts: loadedLayouts,
+          games: loadedGames
+        }));
+
         setCategories(parents);
-        setLayouts(Object.fromEntries(layoutResults));
-        setGames(gameData.games || []);
+        setLayouts(loadedLayouts);
+        setGames(loadedGames);
         setCategory(parents[0]?._id || null);
       } catch (err) {
         if (err.name !== "AbortError") {
@@ -541,7 +572,9 @@ function HomePage({ onAuth, onPage }) {
             <span>Live Chat 24/7</span>
           </button>
           <button onClick={() => onPage("roulette")}>
-            <Sparkles />
+            <span className="lucky-wheel-icon">
+              <span className="lucky-wheel-disc">★</span>
+            </span>
             <span>Lucky wheel</span>
           </button>
           <button onClick={() => onPage("bonus")}>
@@ -570,7 +603,16 @@ function HomePage({ onAuth, onPage }) {
         />
 
         <div className="games-grid">
-          {loading && <p>Loading games...</p>}
+          {loading && (
+            <div className="games-skeleton">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div className="skeleton-game" key={i}>
+                  <div className="skeleton-image" />
+                  <div className="skeleton-title" />
+                </div>
+              ))}
+            </div>
+          )}
           {error && <p>{error}</p>}
 
           {!loading && !error && displayedItems.map((entry) => {
@@ -1572,12 +1614,140 @@ function GamesPage({ onBack }) {
   return <div className="phone-shell games-shell"><div className="games-title"><button onClick={onBack}><ArrowLeft /></button><strong>KoolBet</strong><label><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search" />⌕</label></div><div className="games-tabs">{['All', 'Hot', 'Recent'].map((item) => <button className={tab === item ? 'active' : ''} onClick={() => setTab(item)} key={item}>{item}</button>)}</div><div className="games-browser"><div className="provider-list">{['KoolBet', 'INOUT', 'SPRIBE', 'JILI', '2J Games', 'FC', 'JDB'].map((provider) => <button key={provider}>{provider}</button>)}</div><div className="browser-grid">{gameList.filter((game) => game.name.toLowerCase().includes(search.toLowerCase())).map((game) => <GameCard game={game} onPage={() => { }} key={game.name} />)}</div></div></div>;
 }
 
-function RoulettePage({ onBack }) {
-  return <div className="phone-shell roulette-shell"><div className="roulette-top"><button onClick={onBack}><ArrowLeft /></button><span>♬ &nbsp; ****7629 successfully withdrawn money!</span><b>◉ 0</b></div><div className="roulette-hero"><button>Rule</button><button>Record</button><h1>Deposit spinner<br />rewards up to 3,779</h1><button className="deposit-now">Deposit now</button></div><div className="reward-levels">{['most 399', 'most 799', 'most 1,999', 'most 3,779'].map((item) => <div key={item}>◎<span>{item}</span></div>)}</div><p className="spin-copy">Deposit 500 to get 1 spins.</p><div className="spin-track"><i>500<br /><b>+1 Spin</b></i><i>1,500<br /><b>+1 Spin</b></i></div><div className="wheel"><div className="wheel-center">GO<br /><span>Spin*0</span></div><div className="wheel-labels"><span>Free Spin*2</span><span>399</span><span>79</span><span>299</span><span>Free Spin*1</span><span>39</span><span>69</span><span>199</span></div></div></div>;
+
+function RoulettePage({ onBack, onPage }) {
+  const [tier, setTier] = useState(0);
+  const [spinMessage, setSpinMessage] = useState(false);
+
+  const wheels = [
+    { color: "gold", deposit: "500", spins: ["500", "1,500"], prizes: ["Free Spin×2", "399", "79", "299", "Free Spin×1", "39", "69", "199"] },
+    { color: "blue", deposit: "3,000", spins: ["3,000", "6,000"], prizes: ["Free Spin×2", "599", "99", "399", "Free Spin×1", "79", "199", "299"] },
+    { color: "red", deposit: "50,000", spins: ["50,000", "100,000", "200,000"], prizes: ["Free Spin×2", "3,779", "199", "699", "Free Spin×1", "139", "399", "799"] },
+    { color: "purple", deposit: "10,000", spins: ["10,000", "20,000"], prizes: ["Free Spin×2", "139", "19", "299", "Free Spin×1", "69", "199", "399"] }
+  ];
+
+  const current = wheels[tier];
+
+  return (
+    <div className={`phone-shell roulette-shell roulette-${current.color}`}>
+      <div className="roulette-top">
+        <button onClick={onBack}><ArrowLeft /></button>
+        <span>♬ &nbsp; Lucky rewards await you!</span>
+        <b>◉ 0</b>
+      </div>
+
+      <div className="roulette-hero">
+        <h1>Deposit spinner<br />rewards up to 3,779</h1>
+        <button
+          className="deposit-now"
+          type="button"
+          onClick={() => onPage("deposit")}
+        >
+          Deposit now
+        </button>
+      </div>
+
+      <div className="reward-levels">
+        {["399", "799", "1,999", "3,779"].map((prize, i) => (
+          <button
+            type="button"
+            key={prize}
+            className={tier === i ? "active" : ""}
+            onClick={() => setTier(i)}
+          >
+            <span className="reward-coin">🪙</span>
+            <small>most</small>
+            <strong>{prize}</strong>
+          </button>
+        ))}
+      </div>
+
+      <p className="spin-copy">
+        Deposit {current.deposit} to get 1 spin.
+      </p>
+
+      <div className="roulette-progress">
+        <div className="roulette-progress-bar" />
+        <div className="roulette-milestones">
+          {current.spins.map((amount) => (
+            <div key={amount}>
+              <span>🏅</span>
+              <small>{amount}</small>
+              <b>+1 Spin</b>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="roulette-wheel-frame">
+        <div className="roulette-pointer">◆</div>
+        <div className="roulette-prize-wheel">
+          {current.prizes.map((prize, i) => (
+            <div
+              key={i}
+              className="roulette-prize"
+              style={{
+                transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-112px) rotate(${-i * 45}deg)`
+              }}
+            >
+              <span>{prize}</span>
+              <b>{i % 2 === 0 ? "💰" : "🎁"}</b>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="roulette-go"
+            onClick={() => {
+              setSpinMessage(true);
+              setTimeout(() => setSpinMessage(false), 2200);
+            }}
+          >
+            GO
+            <small>Spin*0</small>
+          </button>
+
+          {spinMessage && (
+            <div className="roulette-toast" role="alert">
+              Not enough draws
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
+
 function BonusModal({ onClose }) {
-  return <div className="bonus-backdrop" onMouseDown={onClose}><div className="bonus-modal" onMouseDown={(event) => event.stopPropagation()}><div className="bonus-ribbon">Available Bonus</div>{[['Invite Turntable', '1,500'], ['Mail', 'GO'], ['Super Member Day', 'GO'], ['Invitation Rewards', 'GO'], ['First deposit', 'GO']].map(([title, value], index) => <div className="bonus-row" key={title}><b>{title}</b><button>{value}</button>{index === 2 && <small>4Day 05:36:01</small>}</div>)}<button className="bonus-close" onClick={onClose}><X /></button></div></div>;
+  return (
+    <div className="bonus-backdrop" onMouseDown={onClose}>
+      <div
+        className="bonus-modal bonus-maintenance"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="bonus-ribbon">Available Bonus</div>
+
+        <div className="bonus-maintenance-content">
+          <div className="bonus-maintenance-icon">🎁</div>
+          <h2>Exciting Rewards Coming Soon!</h2>
+          <p>
+            Our bonus system is currently under maintenance.
+            We're preparing exclusive rewards and exciting
+            offers just for you.
+          </p>
+          <span>COMING SOON</span>
+        </div>
+
+        <button
+          className="bonus-close"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          <X />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 
@@ -1585,6 +1755,24 @@ function VipPage({ onBack, onPage }) {
   const [user, setUser] = useState(null);
   const [vip, setVip] = useState(null);
   const [vipTab, setVipTab] = useState("privileges");
+  const [viewVipLevel, setViewVipLevel] = useState(1);
+
+  const vipRequirements = [
+    [100, 500],
+    [300, 3000],
+    [500, 5000],
+    [700, 7000],
+    [1000, 10000],
+    [3000, 30000],
+    [5000, 50000],
+    [7000, 70000],
+    [10000, 100000],
+    [30000, 300000],
+    [50000, 500000],
+    [70000, 700000]
+  ];
+
+  const [requiredDeposits, requiredBets] = vipRequirements[viewVipLevel - 1];
 
   useEffect(() => {
     try {
@@ -1676,42 +1864,79 @@ function VipPage({ onBack, onPage }) {
       <PageHeader onBack={onBack} title="VIP" />
 
       <div className="vip-heading">
-        <div className="vip-avatar">VIP</div>
-        <b>
-          ⌄ UID {user?.id?.slice(-8).toUpperCase() || "Loading..."}
-        </b>
-        <span>0<sup>1TM</sup></span>
+        <div className="vip-avatar">
+          <span>👩🏽</span>
+          <b>VIP 0</b>
+        </div>
+        <div className="vip-user-info">
+          <b>⌄ UID {user?.id?.slice(-8).toUpperCase() || "--------"}</b>
+          <div className="vip-balance-pill">0 ❯</div>
+          <small>VIP {vip?.level ?? 0}</small>
+        </div>
+        <button className="vip-copy" onClick={() => navigator.clipboard.writeText(user?.id || "")}>▣</button>
       </div>
 
-      <section className="vip-level">
-        <div className="crown">♛</div>
-        <strong>VIP {vip?.level ?? 1}</strong>
+      <section className="vip-showcase">
+        <div className="vip-showcase-card" key={viewVipLevel}>
+          <div className="vip-showcase-art">
+            <span className="vip-crown">♛</span>
+            <strong>VIP {viewVipLevel}</strong>
+          </div>
 
-        <div>
-          <small>Next level</small>
-          <b>{vip?.totalDeposits ?? 0}/100</b>
-          <hr />
-          <small>Accumulated deposits</small>
-          <b>{vip?.totalBets ?? 0}/500</b>
-          <hr />
-          <small>Accumulated bets</small>
+          <div className="vip-showcase-info">
+            <div className="vip-showcase-progress">
+              <small>Accumulated deposits</small>
+              <b>0/{requiredDeposits >= 1000 ? `${requiredDeposits / 1000}k` : requiredDeposits}</b>
+              <div className="vip-progress-track">
+                <div style={{ width: "0%" }} />
+              </div>
+            </div>
+
+            <div className="vip-showcase-progress">
+              <small>Accumulated bets</small>
+              <b>0/{requiredBets >= 1000 ? `${requiredBets / 1000}k` : requiredBets}</b>
+              <div className="vip-progress-track">
+                <div style={{ width: "0%" }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="vip-showcase-controls">
+          <button
+            type="button"
+            disabled={viewVipLevel === 1}
+            onClick={() => setViewVipLevel(v => Math.max(1, v - 1))}
+          >
+            ‹
+          </button>
+          <span>VIP {viewVipLevel} / VIP 12</span>
+          <button
+            type="button"
+            disabled={viewVipLevel === 12}
+            onClick={() => setViewVipLevel(v => Math.min(12, v + 1))}
+          >
+            ›
+          </button>
         </div>
       </section>
 
       <div className="vip-grid">
         {[
-          ["Level up rewards", "1.5"],
-          ["Weekly reward", "1.1"],
-          ["Monthly reward", "1.9"],
-          ["Rebate Rate", "0.15%"]
-        ].map(([name, value]) => (
+          ["Level up rewards", "715", "🪙"],
+          ["Weekly reward", "88", "🗓️"],
+          ["Monthly reward", "719", "📅"],
+          ["Rebate Rate", "0.3%", "🎟️"]
+        ].map(([name, value, icon]) => (
           <div key={name}>
-            <span>▣</span>
+            <span>{icon}</span>
             <b>{name}</b>
             <strong>{value}</strong>
-            <button type="button" disabled title="Not yet available">
-              ▣
-            </button>
+            {name !== "Rebate Rate" && (
+              <button type="button" disabled>
+                🔒
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -1940,8 +2165,38 @@ function CategoryDetailPage({ categoryId, onBack }) {
 
 export default function Home() {
   const [page, setPage] = useState("home");
+
+  useEffect(() => {
+    const section = sessionStorage.getItem("openHomeSection");
+
+    if (["home", "promo", "earn", "mine"].includes(section)) {
+      setPage(section);
+    }
+
+    sessionStorage.removeItem("openHomeSection");
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get("page");
+
+    if (["promo", "earn", "mine"].includes(target)) {
+      setPage(target);
+      window.history.replaceState(null, "", "/");
+    }
+  }, []);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [auth, setAuth] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("referCode");
+
+    if (code) {
+      sessionStorage.setItem("pendingInviteCode", code);
+      setAuth("register");
+    }
+  }, []);
 
   // Smart popup states
   const [popups, setPopups] = useState([]);
@@ -2086,7 +2341,24 @@ export default function Home() {
       )}
 
       {page === "promo" && (
-        <ActivityPage onBack={() => setPage("home")} />
+        <div className="phone-shell promo-maintenance">
+          <PageHeader
+            title="Promotions"
+            onBack={() => setPage("home")}
+          />
+
+          <div className="maintenance-content">
+            <div className="maintenance-icon">⚙️</div>
+            <h1>Under Maintenance</h1>
+            <p>
+              Something exciting is coming!
+              <br />
+              We're upgrading our promotions to bring you
+              better rewards and exclusive offers.
+            </p>
+            <span>COMING SOON</span>
+          </div>
+        </div>
       )}
 
       {page === "earn" && (
@@ -2108,7 +2380,7 @@ export default function Home() {
       )}
 
       {page === "roulette" && (
-        <RoulettePage onBack={() => setPage("home")} />
+        <RoulettePage onBack={() => setPage("home")} onPage={openPage} />
       )}
 
       {page === "deposit" && (

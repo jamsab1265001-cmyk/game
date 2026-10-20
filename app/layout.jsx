@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: '81CC Casino',
+  title: 'Jam Casino',
   description: 'A premium mobile casino experience',
 };
 
